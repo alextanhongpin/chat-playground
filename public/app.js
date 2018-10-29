@@ -4,17 +4,43 @@
     <style>
       :host {
         contain: content;
+        --header-height: 60px;
+        --footer-height: 60px;
+        background: white;
       }
 
-      .header {
-        background: #EEEEEE;
+      .app {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: var(--header-height) 1fr var(--footer-height);
+        height: 100%;
+        margin: auto;
+        max-width: 800px;
+        width: 100%;
+      }
+
+      header {
+        align-items: center;
+        background: #F7F7F7;
+        display: grid;
+        grid-column-gap: 10px;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 0 10px;
+      }
+
+      .brand {
+        display: block;
+        margin: 0;
+        padding: 0;
       }
 
       .user {
         background: #DDDDDD;
+        border-radius: 50%;
         height: 40px;
         width: 40px;
-        border-radius: 50%;
       }
       .user.is-self {
         border: 3px solid #4488FF;
@@ -23,17 +49,49 @@
       .url.is-hidden {
         display: none;
       }
+
+      footer {
+        align-items: center;
+        background: #F7F7F7;
+        display: grid;
+        grid-column-gap: 10px;
+        grid-template-columns: 1fr 120px;
+        height: var(--footer-height);
+        padding: 0 10px;
+      }
+      .message {
+        border-radius: 3px;
+        border: 1px solid #DDDDDD;
+        font-size: 14px;
+        height: 40px;
+        padding: 0 10px;
+        width: 100%;
+      }
+      #submit {
+        -webkit-appearance: none;
+        background: #4488ff;
+        border-radius: 20px;
+        border: none;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+        height: 40px;
+        min-width: 120px;
+        padding: 0 20px;
+      }
+      
     </style>
 
-    <div>
+    <div class='app'>
       <header>
-        <h1 class='header'>chat playground</h1>
-        <input type='text' onClick='this.setSelectionRange(0, this.value.length)' class='url is-hidden'/>
-        <div id='share-url'>Share</div>
+        <h2 class='brand'>chat playground</h2>
+        <div>
+          <button id='share-url'>Share</button>
+          <input type='text' onClick='this.setSelectionRange(0, this.value.length)' class='url is-hidden'/>
+        </div>
         <div class='users'></div>
       </header>
       <main class='messages'>
-        No messages.
       </main>
       <footer>
         <input class='message' type='text' placeholder='Enter message' required/>
@@ -136,9 +194,9 @@
         socket.send(JSON.stringify({
           type: 'auth'
         }))
-        socket.send(JSON.stringify({
-          type: 'status'
-        }))
+        // socket.send(JSON.stringify({
+        //   type: 'status'
+        // }))
         console.log('enquire status')
       }
 

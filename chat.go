@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
+
+	"go.uber.org/zap"
 )
 
 type Chat struct {
@@ -12,9 +13,15 @@ type Chat struct {
 	unregister chan *connection
 	quit       chan struct{}
 	rooms      *Rooms
+	log        *zap.Logger
 }
 
 func NewChat() *Chat {
+	log, err := zap.NewProduction()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	defer log.Sync()
 	chat := Chat{
 		users:      make(map[string]*connection),
 		stream:     make(chan Message, 10000),
@@ -22,6 +29,7 @@ func NewChat() *Chat {
 		unregister: make(chan *connection, 10000),
 		quit:       make(chan struct{}),
 		rooms:      NewRooms(),
+		log:        log,
 	}
 	go chat.loop()
 	return &chat
@@ -58,24 +66,43 @@ func (c *Chat) loop() {
 				Sender:      conn.id,
 				DisplayName: conn.user,
 			}
+			conn.conn.Close()
 		case msg, ok := <-c.stream:
 			if !ok {
 				return
 			}
 			switch msg.Type {
 			case "presence":
+				// Send details on who is online/offline to yourself.
+				self := c.users[msg.Sender]
+				c.log.Info("notifying presence",
+					zap.String("sender", msg.Sender),
+					zap.Bool("isnil", self == nil),
+				)
+
+				// Notify others in the same room.
 				users := c.rooms.GetUsers(msg.Room)
 				for _, user := range users {
+					// Skip if it is the sender.
 					if user == msg.Sender {
-						// Don't send to yourself.
 						continue
 					}
+
 					if socket, online := c.users[user]; online {
-						msg.DisplayName = socket.user
+						c.log.Info("presence for", zap.String("user", user),
+							zap.String("curr", msg.Sender))
 						err := socket.conn.WriteJSON(msg)
 						if err != nil {
-							socket.conn.Close()
 							c.unregister <- socket
+						}
+						if self != nil {
+							copy := msg
+							copy.DisplayName = socket.user
+							copy.Sender = socket.id
+							err = self.conn.WriteJSON(copy)
+							if err != nil {
+								c.unregister <- self
+							}
 						}
 					}
 				}
@@ -85,44 +112,17 @@ func (c *Chat) loop() {
 					if socket, online := c.users[user]; online {
 						err := socket.conn.WriteJSON(msg)
 						if err != nil {
-							socket.conn.Close()
 							c.unregister <- socket
 						}
 					}
 				}
 			case "auth":
 				socket := c.users[msg.Sender]
-				msg.DisplayName = socket.user
-				msg.Sender = socket.id
+				// msg.DisplayName = socket.user
+				// msg.Sender = socket.id
 				err := socket.conn.WriteJSON(msg)
 				if err != nil {
-					socket.conn.Close()
 					c.unregister <- socket
-				}
-			case "status":
-				// Find everyone in the same room to get their status.
-				users := c.rooms.GetUsers(msg.Room)
-				sender := c.users[msg.Sender]
-				log.Println("checking statuses", users)
-				for _, user := range users {
-					if user == msg.Sender {
-						// Don't need to notify oneself.
-						continue
-					}
-					if conn, exist := c.users[user]; exist {
-						log.Println("sending presence indicator")
-						err := sender.conn.WriteJSON(Message{
-							Type:        "presence",
-							Text:        "online",
-							Sender:      conn.id,
-							DisplayName: conn.user,
-							Room:        conn.room,
-						})
-						if err != nil {
-							conn.conn.Close()
-							c.unregister <- conn
-						}
-					}
 				}
 
 			default:

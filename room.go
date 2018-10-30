@@ -29,6 +29,9 @@ func (r *Rooms) Remove(user string) {
 	rooms := r.store[userKey(user)]
 	for room := range rooms {
 		delete(r.store[room], userKey(user))
+		if len(r.store[room]) == 0 {
+			delete(r.store, room)
+		}
 	}
 	delete(r.store, userKey(user))
 }

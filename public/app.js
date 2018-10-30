@@ -11,13 +11,11 @@
 
       .app {
         background: white;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         display: grid;
         grid-template-columns: 1fr;
         grid-template-rows: var(--header-height) 1fr var(--footer-height);
         height: 100%;
         margin: auto;
-        max-width: 800px;
         width: 100%;
       }
 
@@ -36,6 +34,10 @@
         padding: 0;
       }
 
+      main {
+        padding: 4px;
+      }
+
       .user {
         background: #DDDDDD;
         border-radius: 50%;
@@ -52,7 +54,8 @@
 
       footer {
         align-items: center;
-        background: #F7F7F7;
+        background: white;
+        border-top: 1px solid #EEEEEE;
         display: grid;
         grid-column-gap: 10px;
         grid-template-columns: 1fr 120px;
@@ -60,11 +63,13 @@
         padding: 0 10px;
       }
       .message {
+        background: white;
         border-radius: 3px;
-        border: 1px solid #DDDDDD;
-        font-size: 14px;
-        height: 40px;
-        padding: 0 10px;
+        border: none; 
+        font-size: 15px;
+        height: 36px;
+        outline: none;
+        padding: 0 4px;
         width: 100%;
       }
       #submit {
@@ -78,6 +83,10 @@
         height: 40px;
         min-width: 120px;
         padding: 0 20px;
+      }
+      #submit:hover {
+        cursor: pointer;
+        background: #4499FF;
       }
       
     </style>
@@ -94,7 +103,7 @@
       <main class='messages'>
       </main>
       <footer>
-        <input class='message' type='text' placeholder='Enter message' required/>
+        <input class='message' type='text' placeholder='Type your message here' required/>
         <button id='submit'>Submit</button>
       </footer>
     </div>
@@ -118,26 +127,22 @@
     }
     set user ({ sender, display_name: displayName, text }) {
       if (!this.state.users.has(sender) && text === 'online') {
-
         let userObj = { sender, displayName, isSelf: sender === this.state.user }
         this.state.users.set(sender, userObj) 
         let $users = this.shadowRoot.querySelector('.users')
-
-        console.log('checkObject', userObj, sender, this.state.user)
         let $user = document.createElement('div')
         $user.textContent = displayName
         $user.classList.add('user')
         userObj.isSelf && $user.classList.add('is-self')
         $users.appendChild($user)
-
         this.state.$users.set(userObj, $user)
       }
       if (this.state.users.has(sender) && text === 'offline') {
         let user = this.state.users.get(sender)
         let $user = this.state.$users.get(user)
         $user && $user.remove()
-        this.state.$users.has(user) && this.state.$users.remove(user)
-        this.state.users.remove(sender)
+        this.state.$users.has(user) && this.state.$users.delete(user)
+        this.state.users.delete(sender)
       }
     }
     connectedCallback () {
@@ -158,6 +163,12 @@
       $buttonShareUrl.addEventListener('click', this.onShareUrl.bind(this))
 
       let $inputMessage = this.shadowRoot.querySelector('.message')
+      $inputMessage.addEventListener('keydown', (evt) => {
+        if (evt.keyCode === 13) {
+          this.onSendMessage()
+          return
+        }
+      })
       let $buttonSubmit = this.shadowRoot.getElementById('submit')
       $buttonSubmit.addEventListener('click', this.onSendMessage.bind(this))
     }
@@ -188,18 +199,10 @@
       this.state.displayName = user
       this.state.room = room
 
-      let socket = new WebSocket(`ws://localhost:8000/ws?room=${room}&user=${user}`)
+      let id = window.localStorage.id
+      let socket = new WebSocket(`ws://localhost:8000/ws?room=${room}&user=${user}&id=${id}`)
       this.state.socket = socket
-      socket.onopen = () => {
-        socket.send(JSON.stringify({
-          type: 'auth'
-        }))
-        // socket.send(JSON.stringify({
-        //   type: 'status'
-        // }))
-        console.log('enquire status')
-      }
-
+      // socket.onopen = () => { }
       socket.onmessage = (evt) => {
         try {
           let msg = JSON.parse(evt.data)
@@ -207,21 +210,19 @@
           switch (msg.type) {
             case 'auth':
               this.state.user = msg.sender
-              msg.text = 'online'
-              // this.state.displayName = msg.display_name
+              // Cache the id locally.
+              window.localStorage.id = msg.sender
               this.user = msg
+              break
             case 'message':
               this.addMessage(msg)
               break
             case 'presence':
               this.user = msg
-              console.log(msg.display_name, msg.text, msg.sender === this.state.sender)
               break
-            // case 'status':
             default:
               break
           }
-          console.log(msg)
         } catch (error) {
           console.error(error)
         }

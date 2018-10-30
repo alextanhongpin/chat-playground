@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 )
 
@@ -14,6 +12,7 @@ type Chat struct {
 	quit       chan struct{}
 	rooms      *Rooms
 	log        *zap.Logger
+	messages   map[string][]Message
 }
 
 func NewChat() *Chat {
@@ -30,12 +29,14 @@ func NewChat() *Chat {
 		quit:       make(chan struct{}),
 		rooms:      NewRooms(),
 		log:        log,
+		messages:   make(map[string][]Message),
 	}
 	go chat.loop()
 	return &chat
 }
 
 func (c *Chat) loop() {
+	log := c.log
 	for {
 		select {
 		case <-c.quit:
@@ -53,12 +54,35 @@ func (c *Chat) loop() {
 			}
 			c.users[conn.id] = conn
 			c.rooms.Add(conn.id, conn.room)
+
+			// Notify the user that the auth is successfull.
+			conn.conn.WriteJSON(Message{
+				Type:        "auth",
+				Sender:      conn.id,
+				Room:        conn.room,
+				Text:        "online",
+				DisplayName: conn.user,
+			})
+			// Retrieve all messages from the current room, if any.
+			messages, found := c.messages[conn.room]
+			if found {
+				for _, msg := range messages {
+					err := conn.conn.WriteJSON(msg)
+					if err != nil {
+						continue
+					}
+				}
+			}
 		case conn, ok := <-c.unregister:
 			if !ok {
 				return
 			}
 			delete(c.users, conn.id)
-			c.rooms.Remove(conn.id)
+			isEmpty := c.rooms.Remove(conn.id)
+			if isEmpty {
+				// Clear all conversations.
+				delete(c.messages, conn.room)
+			}
 			c.stream <- Message{
 				Type:        "presence",
 				Room:        conn.room,
@@ -75,7 +99,7 @@ func (c *Chat) loop() {
 			case "presence":
 				// Send details on who is online/offline to yourself.
 				self := c.users[msg.Sender]
-				c.log.Info("notifying presence",
+				log.Info("notifying presence",
 					zap.String("sender", msg.Sender),
 					zap.Bool("isnil", self == nil),
 				)
@@ -89,7 +113,7 @@ func (c *Chat) loop() {
 					}
 
 					if socket, online := c.users[user]; online {
-						c.log.Info("presence for", zap.String("user", user),
+						log.Info("presence for", zap.String("user", user),
 							zap.String("curr", msg.Sender))
 						err := socket.conn.WriteJSON(msg)
 						if err != nil {
@@ -116,18 +140,24 @@ func (c *Chat) loop() {
 						}
 					}
 				}
-			case "auth":
-				socket := c.users[msg.Sender]
-				// msg.DisplayName = socket.user
-				// msg.Sender = socket.id
-				err := socket.conn.WriteJSON(msg)
-				if err != nil {
-					c.unregister <- socket
+				messages, found := c.messages[msg.Room]
+				if !found {
+					messages = make([]Message, 0)
 				}
-
+				messages = append(messages, msg)
+				c.messages[msg.Room] = messages
+				log.Info("conversations",
+					zap.String("room", msg.Room),
+					zap.Int("count", len(messages)))
+			// case "auth":
+			//         socket := c.users[msg.Sender]
+			//         err := socket.conn.WriteJSON(msg)
+			//         if err != nil {
+			//                 c.unregister <- socket
+			//         }
 			default:
+				log.Info("not implemented", zap.String("type", msg.Type))
 			}
-			fmt.Println(msg)
 		}
 	}
 }

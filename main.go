@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -52,7 +53,17 @@ func main() {
 	handler.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		tmpl.Execute(w, nil)
 	})
-	handler.GET("/chat/:id", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	handler.GET("/lobby", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		http.Redirect(w, r, fmt.Sprintf("/rooms/%s", xid.New().String()), http.StatusFound)
+	})
+
+	handler.GET("/rooms/:id", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		_, err := xid.FromString(ps.ByName("id"))
+		if err != nil {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
 		tmpl.Execute(w, Token{ID: ps.ByName("id")})
 	})
 
@@ -75,9 +86,16 @@ func serveWS(chat *Chat) httprouter.Handle {
 			return
 		}
 		// This allow us to have same username.
-		id := xid.New().String()
 		room := r.URL.Query().Get("room")
 		user := r.URL.Query().Get("user")
+		// The id can be stored on the client side. This allows us to
+		// survive restarts (User rejoining a session should not have a
+		// new id).
+		id := r.URL.Query().Get("id")
+		_, err := xid.FromString(id)
+		if err != nil {
+			id = xid.New().String()
+		}
 		ws, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -92,7 +110,6 @@ func serveWS(chat *Chat) httprouter.Handle {
 			id:   id,
 		}
 
-		log.Println("registered", conn)
 		chat.register <- conn
 		defer func() {
 			chat.unregister <- conn

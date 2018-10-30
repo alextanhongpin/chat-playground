@@ -3,13 +3,23 @@
   template.innerHTML = `
     <style>
       :host {
-        all: inherit;
         contain: content;
+      }
+      @keyframes bubble {
+        from {
+          opacity: 0;
+          transform: translate3d(0, 100%, 0);
+        }
+        to {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
       }
       .dialog {
         display: grid;
         text-align: left;
         justify-content: flex-start;
+        animation: bubble 0.174s ease-out forwards;
       }
 
       .dialog.is-self {

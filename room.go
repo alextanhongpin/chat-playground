@@ -25,15 +25,17 @@ func (r *Rooms) Add(user, room string) {
 	r.store[roomKey(room)][userKey(user)] = struct{}{}
 }
 
-func (r *Rooms) Remove(user string) {
+func (r *Rooms) Remove(user string) (isEmpty bool) {
 	rooms := r.store[userKey(user)]
 	for room := range rooms {
 		delete(r.store[room], userKey(user))
 		if len(r.store[room]) == 0 {
+			isEmpty = true
 			delete(r.store, room)
 		}
 	}
 	delete(r.store, userKey(user))
+	return
 }
 
 func (r *Rooms) GetUsers(room string) []string {

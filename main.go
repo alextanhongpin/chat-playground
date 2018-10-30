@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -30,6 +35,13 @@ type Message struct {
 	Date        time.Time `json:"date,omitempty"`
 }
 
+type Health struct {
+	BuildDate  string `json:"build_date"`
+	Version    string `json:"version"`
+	DeployedAt string `json:"deployed_at"`
+	Uptime     string `json:"uptime"`
+}
+
 type connection struct {
 	conn *websocket.Conn
 	user string // username, e.g. john
@@ -42,7 +54,13 @@ type Token struct {
 }
 
 func main() {
-	port := ":8000"
+	var (
+		port       = ":8000"
+		buildDate  = os.Getenv("BUILD_DATE")
+		version    = os.Getenv("VERSION")
+		deployedAt = time.Now().UTC().Format(time.RFC3339)
+		uptime     = time.Now()
+	)
 
 	chat := NewChat()
 	tmpl := template.Must(template.ParseFiles("templates/index.html"))
@@ -50,6 +68,14 @@ func main() {
 	handler.GET("/ws", serveWS(chat))
 
 	handler.ServeFiles("/public/*filepath", http.Dir("public"))
+	handler.GET("/health", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		json.NewEncoder(w).Encode(Health{
+			BuildDate:  buildDate,
+			Version:    version,
+			DeployedAt: deployedAt,
+			Uptime:     time.Since(uptime).String(),
+		})
+	})
 	handler.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		tmpl.Execute(w, nil)
 	})
@@ -67,16 +93,35 @@ func main() {
 		tmpl.Execute(w, Token{ID: ps.ByName("id")})
 	})
 
-	// TODO: Add graceful shutdown.
-	log.Printf("listening to port *%s. press ctrl + c to cancel.\n", port)
-	s := &http.Server{
+	srv := &http.Server{
 		Addr:           port,
 		Handler:        handler,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	log.Fatal(s.ListenAndServe())
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
+	go func() {
+		log.Printf("listening to port *%s. press ctrl + c to cancel.\n", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+	<-quit
+	log.Println("main: server terminating...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	log.Println("main: graceful shutdown")
 }
 
 func serveWS(chat *Chat) httprouter.Handle {

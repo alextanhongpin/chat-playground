@@ -22,6 +22,9 @@ ARG VCS_REF
 ARG NAME
 ARG VENDOR
 
+ENV VERSION=$VERSION
+ENV BUILD_DATE=$BUILD_DATE
+
 # Metadata
 LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.name=$NAME \

@@ -13,7 +13,7 @@ html {
 	background: #EEEEEE;
 }
 
-body, input {
+body, input, button, textarea {
 	font-family: Avenir, Helvetica, Arial;
 }
 

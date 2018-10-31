@@ -38,20 +38,51 @@
         padding: 4px;
       }
 
+      .users {
+        display: grid;
+        grid-template-columns: repeat(4, max-content);
+        grid-column-gap: 4px;
+      }
       .user {
-        background: #DDDDDD;
-        border-radius: 50%;
+        background: #BBBBBB;
+        color: white;
         height: 40px;
         width: 40px;
-      }
-      .user.is-self {
-        border: 3px solid #4488FF;
+        line-height: 40px;
+        text-align: center;
+        font-size: 12px;
       }
 
+      .user.is-self {
+        background: #4488FF;
+        color: white;
+        font-weight: bold;
+        opacity: 0.6;
+      }
+
+      #share-url {
+        height: 30px;
+        line-height: 30px;
+        padding: 0 10px;
+        min-width: 80px;
+        appearance: none;
+        font-weight: 500;
+        border: none;
+        border-radius: 3px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+        background: #444444;
+        color: white;
+      }
       .url.is-hidden {
         display: none;
       }
-
+      .url {
+        font-size: 14px;
+        height: calc(14px * 2);
+        -webkit-appearance: none;
+        border: 1px solid #DDDDDD;
+        color: #222222;
+      }
       footer {
         align-items: center;
         background: white;
@@ -131,7 +162,7 @@
         this.state.users.set(sender, userObj) 
         let $users = this.shadowRoot.querySelector('.users')
         let $user = document.createElement('div')
-        $user.textContent = displayName
+        $user.textContent = shortenName(displayName)
         $user.classList.add('user')
         userObj.isSelf && $user.classList.add('is-self')
         $users.appendChild($user)
@@ -259,5 +290,14 @@
       document.getSelection().removeAllRanges() // Unselect everything on the HTML document
       document.getSelection().addRange(selected) // Restore the original selection
     }
+  }
+
+  function shortenName(name) {
+    return name
+      .replace(/[\W]/g,'_')
+      .split('_')
+      .map(str => str[0])
+      .join('')
+      .toUpperCase()
   }
 })()

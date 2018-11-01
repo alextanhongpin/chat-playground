@@ -4,14 +4,16 @@
     <style>
       :host {
         contain: content;
-        --header-height: 60px;
-        --footer-height: 80px;
         background: white;
-        --color-100: #5F55FF;
+        --header-height: 60px;
+        --footer-height: 84px;
+        --dodger-blue: #5F55FF;
+        --athens-gray: #E8EBEF;
+        --fog: #DFDDFF;
+        --pastel-green: #76dc76;
       }
 
       .app {
-        background: #E8EBEF;
         background: white;
         display: grid;
         grid-template-columns: 1fr;
@@ -21,46 +23,50 @@
         width: 100%;
       }
 
-      header {
+      .app-header {
         align-items: center;
-        background: #5F55FF;
         display: grid;
         grid-column-gap: 10px;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: max-content max-content;
         padding: 0 10px;
+        border-bottom: 1px solid var(--fog);
       }
 
       .brand {
-        color: #DFDDFF;
         display: block;
         margin: 0;
         padding: 0;
       }
 
-      main {
-        padding: 4px;
+      .body{
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        grid-column-gap: 10px;
       }
 
-      .users {
-        display: grid;
-        grid-template-columns: repeat(4, max-content);
-        grid-column-gap: 4px;
+      .body-aside {
+        border-right: 1px solid var(--athens-gray);
       }
+
       .user {
-        background: #BBBBBB;
-        color: white;
-        height: 40px;
-        width: 40px;
-        line-height: 40px;
-        text-align: center;
-        font-size: 12px;
+        line-height: 60px;
+        padding: 0 10px;
+      }
+      .user:not(:last-child) {
+        border-bottom: 1px solid var(--fog);
+      }
+      .user:before {
+        background: var(--pastel-green);
+        border-radius: 50%;
+        content: '';
+        display: inline-block;
+        height: 9px;
+        margin: 0 7px 0 0;
+        width: 9px;
       }
 
       .user.is-self {
-        background: var(--color-100);
-        color: white;
         font-weight: bold;
-        opacity: 0.6;
       }
 
       #share-url {
@@ -70,7 +76,7 @@
         -webkit-appearance: none;
         border: 1px solid white;
         border-radius: 15px;
-        background: none;
+        background: var(--dodger-blue);
         color: white;
       }
       .url.is-hidden {
@@ -84,61 +90,42 @@
         color: #222222;
       }
       footer {
-        align-items: center;
-        display: grid;
-        grid-column-gap: 10px;
-        grid-template-columns: 1fr 120px;
+        border-top: 1px solid var(--athens-gray);
         height: var(--footer-height);
-        padding: 0 10px;
+        padding: 14px 14px 0 14px;
       }
       .message {
         background: white;
-        border-radius: 3px;
-        border: 1px solid #BBBBBB; 
-        font-size: 13px;
-        height: 40px;
+        border-radius: 7px;
+        border: 1px solid var(--athens-gray);
+        background: var(--athens-gray);
+        font-size: 14px;
+        height: 48px;
         outline: none;
-        padding: 0 4px;
+        padding: 0 7px;
         width: 100%;
       }
       .message:active,
       .message:focus {
-        border: 1px solid #888888;
-      }
-      #submit {
-        display: none;
-        -webkit-appearance: none;
-        background: var(--color-100);
-        border-radius: 20px;
-        border: none;
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
-        height: 40px;
-        min-width: 120px;
-        padding: 0 20px;
-      }
-      #submit:hover {
-        cursor: pointer;
-        background: #4499FF;
+        border: 1px solid var(--fog);
       }
       
     </style>
 
     <div class='app'>
-      <header>
+      <header class='app-header'>
         <h2 class='brand'>chat playground</h2>
         <div>
           <button id='share-url'>Share</button>
           <input type='text' onClick='this.setSelectionRange(0, this.value.length)' class='url is-hidden'/>
         </div>
-        <div class='users'></div>
       </header>
-      <main class='messages'>
-      </main>
+      <div class='body'>
+        <aside class='body-aside'></aside>
+        <main class='messages'></main>
+      </div>
       <footer>
         <input class='message' type='text' placeholder='Type your message here' required/>
-        <button id='submit'>Submit</button>
       </footer>
     </div>
   `
@@ -163,9 +150,9 @@
       if (!this.state.users.has(sender) && text === 'online') {
         let userObj = { sender, displayName, isSelf: sender === this.state.user }
         this.state.users.set(sender, userObj) 
-        let $users = this.shadowRoot.querySelector('.users')
+        let $users = this.shadowRoot.querySelector('.body-aside')
         let $user = document.createElement('div')
-        $user.textContent = shortenName(displayName)
+        $user.textContent = displayName
         $user.classList.add('user')
         userObj.isSelf && $user.classList.add('is-self')
         $users.appendChild($user)
@@ -203,8 +190,6 @@
           return
         }
       })
-      let $buttonSubmit = this.shadowRoot.getElementById('submit')
-      $buttonSubmit.addEventListener('click', this.onSendMessage.bind(this))
     }
     disconnectedCallback() {
       this.state.socket.close()

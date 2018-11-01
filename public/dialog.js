@@ -4,6 +4,9 @@
     <style>
       :host {
         contain: content;
+        --dodger-blue: #5F55FF;
+        --athens-gray: #E8EBEF;
+        --fog: #DFDDFF;
       }
       @keyframes bubble {
         from {
@@ -27,36 +30,38 @@
       }
 
       .dialog .message {
-        background: #5F55FF;
+        background: var(--dodger-blue);
         color: white;
-        padding: 0 15px;
-        border-radius: 5px 15px 15px 5px;
-        line-height: 30px;
-        margin: 2.5px 0;
+        padding: 0 21px;
+        font-size: 14px;
+        border-radius: 5px 21px 21px 5px;
+        line-height: 35px;
+        min-height: 35px;
+        margin: 3px 0;
       }
 
       .dialog.is-self .message {
-        border-radius: 15px 5px 5px 15px;
+        border-radius: 21px 5px 5px 21px;
       }
 
       .dialog .message:first-child {
-        border-radius: 15px 15px 15px 5px;
+        border-radius: 21px 21px 21px 5px;
       }
 
       .dialog.is-self .message:first-child {
-        border-radius: 15px 15px 5px 15px;
+        border-radius: 21px 21px 5px 21px;
       }
 
       .dialog .message:last-child {
-        border-radius: 5px 15px 15px 15px;
+        border-radius: 5px 21px 21px 21px;
       }
 
       .dialog.is-self .message:last-child {
-        border-radius: 15px 5px 15px 15px;
+        border-radius: 21px 5px 21px 21px;
       }
 
       .dialog.is-self .message {
-        background: #E8EBEF;
+        background: var(--athens-gray);
         color: #222222;
       }
     </style>

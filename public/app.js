@@ -5,11 +5,13 @@
       :host {
         contain: content;
         --header-height: 60px;
-        --footer-height: 60px;
+        --footer-height: 80px;
         background: white;
+        --color-100: #5F55FF;
       }
 
       .app {
+        background: #E8EBEF;
         background: white;
         display: grid;
         grid-template-columns: 1fr;
@@ -21,7 +23,7 @@
 
       header {
         align-items: center;
-        background: #F7F7F7;
+        background: #5F55FF;
         display: grid;
         grid-column-gap: 10px;
         grid-template-columns: 1fr 1fr 1fr;
@@ -29,6 +31,7 @@
       }
 
       .brand {
+        color: #DFDDFF;
         display: block;
         margin: 0;
         padding: 0;
@@ -54,7 +57,7 @@
       }
 
       .user.is-self {
-        background: #4488FF;
+        background: var(--color-100);
         color: white;
         font-weight: bold;
         opacity: 0.6;
@@ -63,14 +66,11 @@
       #share-url {
         height: 30px;
         line-height: 30px;
-        padding: 0 10px;
-        min-width: 80px;
-        appearance: none;
-        font-weight: 500;
-        border: none;
-        border-radius: 3px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
-        background: #444444;
+        padding: 0 15px;
+        -webkit-appearance: none;
+        border: 1px solid white;
+        border-radius: 15px;
+        background: none;
         color: white;
       }
       .url.is-hidden {
@@ -85,8 +85,6 @@
       }
       footer {
         align-items: center;
-        background: white;
-        border-top: 1px solid #EEEEEE;
         display: grid;
         grid-column-gap: 10px;
         grid-template-columns: 1fr 120px;
@@ -96,16 +94,21 @@
       .message {
         background: white;
         border-radius: 3px;
-        border: none; 
-        font-size: 15px;
-        height: 36px;
+        border: 1px solid #BBBBBB; 
+        font-size: 13px;
+        height: 40px;
         outline: none;
         padding: 0 4px;
         width: 100%;
       }
+      .message:active,
+      .message:focus {
+        border: 1px solid #888888;
+      }
       #submit {
+        display: none;
         -webkit-appearance: none;
-        background: #4488ff;
+        background: var(--color-100);
         border-radius: 20px;
         border: none;
         color: white;

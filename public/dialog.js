@@ -27,7 +27,7 @@
       }
 
       .dialog .message {
-        background: #4488FF;
+        background: #5F55FF;
         color: white;
         padding: 0 15px;
         border-radius: 5px 15px 15px 5px;
@@ -56,7 +56,7 @@
       }
 
       .dialog.is-self .message {
-        background: #EEEEEE;
+        background: #E8EBEF;
         color: #222222;
       }
     </style>
